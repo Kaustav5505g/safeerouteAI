@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+:root{
+  color-scheme: dark;
+}
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body{
+  font-family: 'Inter', sans-serif;
+  background: #050816;
+  overflow-x: hidden;
+  color: white;
+}
+
+h1,h2,h3,h4{
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.03em;
+}
+
+::selection{
+  background: #ec4899;
+  color: white;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar{
+  width: 8px;
+}
+
+::-webkit-scrollbar-track{
+  background: #0b1120;
+}
+
+::-webkit-scrollbar-thumb{
+  background: linear-gradient(to bottom,#ec4899,#8b5cf6);
+  border-radius: 999px;
+}
+
+/* Premium Glow */
+
+.glow{
+  box-shadow:
+    0 0 20px rgba(236,72,153,0.35),
+    0 0 40px rgba(168,85,247,0.25);
+}
+
+/* Floating Animation */
+
+@keyframes float{
+  0%{
+    transform: translateY(0px);
+  }
+
+  50%{
+    transform: translateY(-10px);
+  }
+
+  100%{
+    transform: translateY(0px);
+  }
+}
+
+.float{
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Gradient Text */
+
+.gradient-text{
+  background: linear-gradient(to right,#ec4899,#8b5cf6,#3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glass Effect */
+
+.glass{
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Premium Hover */
+
+.hover-card{
+  transition: all 0.35s ease;
+}
+
+.hover-card:hover{
+  transform: translateY(-6px);
+  border-color: rgba(236,72,153,0.4);
+  box-shadow:
+    0 0 25px rgba(236,72,153,0.18),
+    0 0 50px rgba(168,85,247,0.12);
+}
