@@ -16,7 +16,6 @@ const SAFE_ZONES = [
   { lat: 26.1689, lng: 91.7845, name: "Zoo Road", radius: 300 },
 ]
  
-// Safe route waypoints through Guwahati
 const SAFE_ROUTE = [
   [26.1523, 91.7634],
   [26.1578, 91.7689],
@@ -30,121 +29,105 @@ export default function GuwahatiMap() {
   const mapInstanceRef = useRef(null)
  
   useEffect(() => {
-    if (mapInstanceRef.current) return
+    if (mapInstanceRef.current || !mapRef.current) return
  
-    // Dynamically load Leaflet CSS
-    const link = document.createElement("link")
-    link.rel = "stylesheet"
-    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    document.head.appendChild(link)
+    // Fix white box: hide attribution and leaflet logo
+    const fixStyle = document.createElement("style")
+    fixStyle.textContent = `
+      .leaflet-control-attribution { display: none !important; }
+      .leaflet-control-zoom { border: none !important; }
+      .leaflet-control-zoom a { background: rgba(255,255,255,0.08) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; backdrop-filter: blur(10px); }
+      .leaflet-control-zoom a:hover { background: rgba(255,255,255,0.15) !important; }
+      .leaflet-popup-content-wrapper { background: rgba(11,17,32,0.95) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 16px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; backdrop-filter: blur(20px); }
+      .leaflet-popup-tip { background: rgba(11,17,32,0.95) !important; }
+      .leaflet-popup-close-button { color: #9ca3af !important; }
+      @keyframes markerPulse { 0%,100%{box-shadow:0 0 8px rgba(34,197,94,0.8)} 50%{box-shadow:0 0 20px rgba(34,197,94,1), 0 0 40px rgba(34,197,94,0.4)} }
+    `
+    document.head.appendChild(fixStyle)
  
-    // Dynamically load Leaflet JS
+    const leafletCSS = document.createElement("link")
+    leafletCSS.rel = "stylesheet"
+    leafletCSS.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    document.head.appendChild(leafletCSS)
+ 
     const script = document.createElement("script")
     script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     script.onload = () => {
       const L = window.L
+      if (!mapRef.current) return
  
       const map = L.map(mapRef.current, {
         center: [26.1612, 91.7712],
         zoom: 13,
         zoomControl: false,
+        attributionControl: false,
       })
- 
       mapInstanceRef.current = map
  
-      // Dark tile layer (free, no API key)
+      L.control.zoom({ position: "bottomright" }).addTo(map)
+ 
+      // Dark tile
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: '© OpenStreetMap © CARTO',
         maxZoom: 19,
       }).addTo(map)
  
-      // Add zoom control bottom right
-      L.control.zoom({ position: "bottomright" }).addTo(map)
- 
-      // Unsafe zones (red circles)
+      // Unsafe zones
       UNSAFE_ZONES.forEach(zone => {
+        const color = zone.risk === "high" ? "#ef4444" : "#f59e0b"
         L.circle([zone.lat, zone.lng], {
-          color: zone.risk === "high" ? "#ef4444" : "#f59e0b",
-          fillColor: zone.risk === "high" ? "#ef4444" : "#f59e0b",
-          fillOpacity: 0.15,
-          weight: 2,
-          radius: zone.radius,
+          color, fillColor: color, fillOpacity: 0.12, weight: 1.5, radius: zone.radius,
         }).addTo(map).bindPopup(`
-          <div style="background:#0B1120;color:white;padding:8px 12px;border-radius:12px;border:1px solid rgba(239,68,68,0.3);min-width:140px">
-            <p style="color:${zone.risk === "high" ? "#ef4444" : "#f59e0b"};font-size:10px;font-weight:600;margin-bottom:4px">${zone.risk === "high" ? "⚠️ HIGH RISK" : "⚡ MODERATE RISK"}</p>
-            <p style="font-weight:700;font-size:14px">${zone.name}</p>
-            <p style="color:#9ca3af;font-size:11px;margin-top:4px">Avoid after 9PM</p>
+          <div style="padding:4px 0">
+            <p style="color:${color};font-size:10px;font-weight:700;letter-spacing:0.08em;margin-bottom:6px">${zone.risk === "high" ? "⚠️ HIGH RISK ZONE" : "⚡ MODERATE RISK"}</p>
+            <p style="font-weight:700;font-size:15px;margin-bottom:4px">${zone.name}</p>
+            <p style="color:#9ca3af;font-size:12px">Caution advised after 9PM</p>
           </div>
-        `, { className: "custom-popup" })
+        `)
       })
  
-      // Safe zones (green circles)
+      // Safe zones
       SAFE_ZONES.forEach(zone => {
         L.circle([zone.lat, zone.lng], {
-          color: "#22c55e",
-          fillColor: "#22c55e",
-          fillOpacity: 0.1,
-          weight: 1.5,
-          radius: zone.radius,
-          dashArray: "6, 4",
+          color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.08, weight: 1.5,
+          radius: zone.radius, dashArray: "8 5",
         }).addTo(map).bindPopup(`
-          <div style="background:#0B1120;color:white;padding:8px 12px;border-radius:12px;border:1px solid rgba(34,197,94,0.3);min-width:140px">
-            <p style="color:#22c55e;font-size:10px;font-weight:600;margin-bottom:4px">✅ SAFE ZONE</p>
-            <p style="font-weight:700;font-size:14px">${zone.name}</p>
-            <p style="color:#9ca3af;font-size:11px;margin-top:4px">AI verified safe area</p>
+          <div style="padding:4px 0">
+            <p style="color:#22c55e;font-size:10px;font-weight:700;letter-spacing:0.08em;margin-bottom:6px">✅ SAFE ZONE</p>
+            <p style="font-weight:700;font-size:15px;margin-bottom:4px">${zone.name}</p>
+            <p style="color:#9ca3af;font-size:12px">AI verified — safe area</p>
           </div>
-        `, { className: "custom-popup" })
+        `)
       })
  
-      // Safe route polyline
+      // Animated route
       const routeLine = L.polyline(SAFE_ROUTE, {
-        color: "#ec4899",
-        weight: 4,
-        opacity: 0.8,
-        dashArray: "12, 6",
-        lineCap: "round",
+        color: "#ec4899", weight: 4, opacity: 0.85,
+        dashArray: "14 7", lineCap: "round", lineJoin: "round",
       }).addTo(map)
  
-      // Animate route dash
       let offset = 0
-      setInterval(() => {
-        offset = (offset + 1) % 18
-        routeLine.setStyle({ dashOffset: `-${offset}` })
-      }, 50)
+      const animInterval = setInterval(() => {
+        offset = (offset - 1 + 21) % 21
+        routeLine.setStyle({ dashOffset: `${offset}` })
+      }, 40)
  
-      // Start marker (green pulsing)
-      const startIcon = L.divIcon({
-        html: `<div style="width:16px;height:16px;background:#22c55e;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(34,197,94,0.8);animation:pulse 1.5s infinite"></div>`,
-        className: "",
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      })
+      // Start marker
+      L.marker(SAFE_ROUTE[0], {
+        icon: L.divIcon({
+          html: `<div style="width:14px;height:14px;background:#22c55e;border-radius:50%;border:2.5px solid #fff;animation:markerPulse 2s infinite;box-shadow:0 0 12px rgba(34,197,94,0.8)"></div>`,
+          className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+        })
+      }).addTo(map).bindPopup(`<div style="padding:4px 0"><p style="font-weight:700;font-size:14px">📍 Your Location</p></div>`)
  
-      // End marker (red)
-      const endIcon = L.divIcon({
-        html: `<div style="width:16px;height:16px;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(239,68,68,0.8)"></div>`,
-        className: "",
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      })
+      // End marker
+      L.marker(SAFE_ROUTE[SAFE_ROUTE.length - 1], {
+        icon: L.divIcon({
+          html: `<div style="width:14px;height:14px;background:#ef4444;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 12px rgba(239,68,68,0.8)"></div>`,
+          className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+        })
+      }).addTo(map).bindPopup(`<div style="padding:4px 0"><p style="font-weight:700;font-size:14px">🏁 Destination</p></div>`)
  
-      L.marker(SAFE_ROUTE[0], { icon: startIcon }).addTo(map)
-        .bindPopup("<div style='background:#0B1120;color:white;padding:8px 12px;border-radius:12px;font-weight:700'>📍 Your Location</div>")
- 
-      L.marker(SAFE_ROUTE[SAFE_ROUTE.length - 1], { icon: endIcon }).addTo(map)
-        .bindPopup("<div style='background:#0B1120;color:white;padding:8px 12px;border-radius:12px;font-weight:700'>🏁 Destination</div>")
- 
-      // Style popups
-      const style = document.createElement("style")
-      style.textContent = `
-        .custom-popup .leaflet-popup-content-wrapper { background: transparent; box-shadow: none; padding: 0; }
-        .custom-popup .leaflet-popup-content { margin: 0; }
-        .custom-popup .leaflet-popup-tip { display: none; }
-        .leaflet-popup-content-wrapper { background: transparent !important; box-shadow: none !important; }
-        .leaflet-popup-tip-container { display: none; }
-        @keyframes pulse { 0%,100%{box-shadow:0 0 8px rgba(34,197,94,0.8)} 50%{box-shadow:0 0 20px rgba(34,197,94,1)} }
-      `
-      document.head.appendChild(style)
+      return () => clearInterval(animInterval)
     }
     document.head.appendChild(script)
  
@@ -157,22 +140,40 @@ export default function GuwahatiMap() {
   }, [])
  
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden">
-      <div ref={mapRef} style={{ width: "100%", height: "100%", borderRadius: "16px" }} />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div ref={mapRef} style={{ width: "100%", height: "100%", borderRadius: "inherit" }} />
  
-      {/* Legend overlay */}
-      <div className="absolute bottom-4 right-4 glass rounded-2xl p-3 text-xs space-y-2 z-[1000]">
-        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500 opacity-80"></div><span className="text-gray-300">High Risk Zone</span></div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-yellow-500 opacity-80"></div><span className="text-gray-300">Moderate Risk</span></div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500 opacity-80"></div><span className="text-gray-300">Safe Zone</span></div>
-        <div className="flex items-center gap-2"><div className="w-3 h-1 rounded bg-pink-500"></div><span className="text-gray-300">Safe Route</span></div>
+      {/* Legend */}
+      <div style={{
+        position: "absolute", bottom: 16, right: 16, zIndex: 1000,
+        background: "rgba(5,8,22,0.85)", backdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14,
+        padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8,
+      }}>
+        {[
+          { color: "#ef4444", label: "High Risk Zone" },
+          { color: "#f59e0b", label: "Moderate Risk" },
+          { color: "#22c55e", label: "Safe Zone" },
+          { color: "#ec4899", label: "Safe Route" },
+        ].map(l => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: l.label === "Safe Route" ? 16 : 10, height: l.label === "Safe Route" ? 3 : 10, background: l.color, borderRadius: l.label === "Safe Route" ? 2 : "50%", opacity: 0.85 }} />
+            <span style={{ color: "#9ca3af", fontSize: 11 }}>{l.label}</span>
+          </div>
+        ))}
       </div>
  
       {/* AI badge */}
-      <div className="absolute top-4 left-4 glass rounded-xl px-3 py-2 text-xs z-[1000] flex items-center gap-2">
-        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span className="text-green-400 font-semibold">AI Safety Active · Guwahati</span>
+      <div style={{
+        position: "absolute", top: 14, left: 14, zIndex: 1000,
+        background: "rgba(5,8,22,0.85)", backdropFilter: "blur(16px)",
+        border: "1px solid rgba(34,197,94,0.25)", borderRadius: 12,
+        padding: "8px 14px", display: "flex", alignItems: "center", gap: 8,
+      }}>
+        <div style={{ width: 7, height: 7, background: "#22c55e", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+        <span style={{ color: "#22c55e", fontSize: 12, fontWeight: 600 }}>AI Safety Active · Guwahati</span>
       </div>
     </div>
   )
 }
+ 
